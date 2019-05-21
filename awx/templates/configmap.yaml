@@ -30,7 +30,7 @@ data:
 
     ALLOWED_HOSTS = ['*']
 
-    INTERNAL_API_URL = 'http://awxweb:8052'
+    INTERNAL_API_URL = 'http://127.0.0.1:8052'
 
     # Container environments don't like chroots
     AWX_PROOT_ENABLED = False
@@ -84,12 +84,12 @@ data:
     DATABASES = {
         'default': {
             'ATOMIC_REQUESTS': True,
-            'ENGINE': 'awx.main.db.profiled_pg',
-            'NAME': os.getenv("DATABASE_NAME", None),
-            'USER': os.getenv("DATABASE_USER", None),
-            'PASSWORD': os.getenv("DATABASE_PASSWORD", None),
-            'HOST': os.getenv("DATABASE_HOST", None),
-            'PORT': os.getenv("DATABASE_PORT", None),
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': "{{ .Values.postgresql.postgresqlDatabase }}",
+            'USER': "{{ .Values.postgresql.postgresqlUsername }}",
+            'PASSWORD': "{{ .Values.postgresql.postgresqlPassword }}",
+            'HOST': "{{ include "awx.fullname" . }}-postgresql",
+            'PORT': "5432",
         }
     }
 
@@ -97,11 +97,11 @@ data:
         DATABASES['default']['OPTIONS'] = {'sslmode': os.getenv("DATABASE_SSLMODE")}
 
     BROKER_URL = 'amqp://{}:{}@{}:{}/{}'.format(
-        os.getenv("RABBITMQ_USER", None),
-        os.getenv("RABBITMQ_PASSWORD", None),
-        os.getenv("RABBITMQ_HOST", None),
-        os.getenv("RABBITMQ_PORT", "5672"),
-        os.getenv("RABBITMQ_VHOST", "tower"))
+        "{{ .Values.rabbitmq.rabbitmq.username }}",
+        "{{ .Values.rabbitmq.rabbitmq.password }}",
+        "{{ include "awx.fullname" . }}-rabbitmq",
+        "{{ default "5672" .Values.rabbitmq.service.port }}",
+        "{{ default "awx" .Values.rabbitmq.vhost }}")
 
     CHANNEL_LAYERS = {
         'default': {'BACKEND': 'asgi_amqp.AMQPChannelLayer',
@@ -113,8 +113,7 @@ data:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-            'LOCATION': '{}:{}'.format(os.getenv("MEMCACHED_HOST", None),
-                                       os.getenv("MEMCACHED_PORT", "11211"))
+            'LOCATION': '{}:{}'.format("{{ include "awx.fullname" . }}-memcached", "{{ default "11211" .Values.memcached_port }}")
         },
         'ephemeral': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
